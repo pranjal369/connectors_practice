@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="2df8573e-6171-483f-bd77-4959c0d4fe57" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="for_each" doc:id="3714a732-7c2c-4933-b732-e99dfcbf7338" >
+		<http:listener doc:name="Listener" doc:id="a390f3b5-90f9-4059-9b41-7f50301784d2" config-ref="HTTP_Listener_config" path="/git"/>
+		<set-payload value='#[[10,"pranjal",20,30]]' doc:name="[10,20,30]" doc:id="add17212-1853-4c2c-a6c2-65e6266941ed" />
+		<set-variable doc:name="varfromLoop" doc:id="096c8c00-429d-4e9b-ae41-c114c1d15c37" variableName="varfromLoop" value="#[[]]"/>
+		<set-variable value="#[[]]" doc:name="failure" doc:id="b0cbf417-82ba-456a-b6dc-138f684d615b" variableName="failure"/>
+		<try doc:name="Try" doc:id="78f5d5d9-c23a-467b-83ef-638bc67f9d2d" >
+			<foreach doc:name="For Each" doc:id="5e6c9f00-9e48-412a-94a4-519b2d9ff5a5">
+			<set-payload doc:name="Set Payload" doc:id="4edb0160-9b40-47cf-84f7-5d0a9434d9b5" value="#[payload*10]" />
+			<set-variable value="#[output application/json&#10;&#10;---&#10;&#10;vars.varfromLoop + payload]" doc:name="varfromLoop" doc:id="72c6f121-d8dd-4682-808e-c9e78e44573a" variableName="varfromLoop" />
+			<logger level="INFO" doc:name="Logger" doc:id="92e8e828-e5ec-4677-b78b-11762c242875" />
+		</foreach>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="3a362040-e845-497f-9fde-431138fded57" type="ANY">
+					<set-variable value="#[output application/json&#10;---&#10;&#10;vars.failure + payload]" doc:name="failure" doc:id="c5062238-0ce3-43c3-8c9d-215aa0ed4b78" variableName="failure"/>
+					<logger level="INFO" doc:name="Logger" doc:id="5f1041fd-43b8-406e-a42b-8d6ed08b5691" />
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<ee:transform doc:name="Transform Message" doc:id="dbe64220-1b03-40c0-8953-3490b0e62def" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	oldPayloadValues: payload,
+	newStoredValues: vars.varfromLoop,
+	elementsWithError: vars.failure
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="19e2c53c-c171-49c9-995c-efb17adb3cbf" message="Added Logger"/>
+	</flow>
+	<flow name="Batchjob" doc:id="4a434b2d-bfd2-4228-b14d-9159eb20de14" >
+		<http:listener doc:name="Listener" doc:id="d91b3026-38be-4896-b347-1e7c8cb50a42" config-ref="HTTP_Listener_config" path="/batch"/>
+		<set-payload value='#[[10,20,"a",40,"pranjal",50]]' doc:name="[10,20,30]" doc:id="a85310de-61d8-4b26-ad3d-d4f6afdde67e" />
+		<batch:job jobName="git_learnBatch_Job" doc:id="f42a5d26-dafc-47e5-aaae-02bb89e7209b" >
+			<batch:process-records>
+				<batch:step name="Batch_Step" doc:id="09b5f325-aa96-47d8-bca9-19992441deb3" acceptExpression="#[payload is Number]">
+					<set-payload value="#[payload*10]" doc:name="Set Payload" doc:id="73dc902a-4aff-41fc-8525-cc6b484f82f0" />
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="0da50eb3-5da1-411e-80be-f738134d5676" size="2">
+						<logger level="INFO" doc:name="Logger" doc:id="b95ee9ac-7c86-4c06-93b4-5ea9711c0ab1" message="#[payload]"/>
+					</batch:aggregator>
+				</batch:step>
+				<batch:step name="Batch_Step1" doc:id="cc1e0beb-765f-4c10-afb7-31312830a720" acceptPolicy="ALL">
+					<set-payload value="#[payload.failedRecords]" doc:name="Set Payload" doc:id="e523711a-9b50-4583-a160-a25aac5d7527" />
+					<batch:aggregator doc:name="Batch Aggregator" doc:id="4fdc9c39-42ce-4300-bc2c-2403e9bcdabe" size="2">
+						<logger level="INFO" doc:name="Logger" doc:id="049bda54-51f2-4bb5-a657-2b6610ee9144" message="#[payload]"/>
+					</batch:aggregator>
+				</batch:step>
+			</batch:process-records>
+			<batch:on-complete >
+				<logger level="INFO" doc:name="Logger" doc:id="33dbacb9-bb3a-4d72-ab87-52448cf5db80" />
+			</batch:on-complete>
+		</batch:job>
+	</flow>
+	<flow name="git_learnFlow" doc:id="780c9e6a-b6f8-4288-b8ac-221b2712b260" >
+		<http:listener doc:name="Listener" doc:id="9a1848cb-49c8-4f73-8c69-cb169cb52659" config-ref="HTTP_Listener_config" path="/choice"/>
+		<choice doc:name="Choice" doc:id="76cbc302-db1f-4033-8f54-9e4520a098df" >
+			<when expression='#[attributes.queryParams.color=="Red"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="263de3a0-4db2-48bd-8e15-dab28548c802" message="Red Color"/>
+			</when>
+			<when expression="#[attributes.queryParams.color=='Yellow']">
+				<logger level="INFO" doc:name="Logger" doc:id="a6531ada-81d0-432d-a61b-f67be11bbbdf" message="Yellow color"/>
+			</when>
+			<when expression='#[attributes.queryParams.color=="Black"]'>
+				<logger level="INFO" doc:name="Logger" doc:id="0fce78cf-c907-4601-bc74-a00fede31477" message="Black color"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="a3fcd1d3-f3fb-401b-ae2d-f6a23c60ef0c" message="Other color"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="2bb95862-a02f-42b0-99f1-42d081fb5152" message="End logger"/>
+	</flow>
+	<flow name="round_robin" doc:id="bc90e299-73a8-4c3f-b6f9-5940aabf97ca" >
+		<http:listener doc:name="Listener" doc:id="5c09a82f-4a0c-4142-a68d-a545b41ed57b" config-ref="HTTP_Listener_config" path="/roundrobin"/>
+		<round-robin doc:name="Round Robin" doc:id="51a5b915-a9c7-4bac-885a-159ff63e2bb7">
+			<route>
+				<set-payload value="1st Route" doc:name="Set Payload" doc:id="6089f50d-637a-43d1-8d1b-2f3dc8497eba" />
+			</route>
+			<route>
+				<set-payload value="2nd Route" doc:name="Set Payload" doc:id="c5bf6bde-cc94-4394-b831-74051cf206cd" />
+			</route>
+			<route>
+				<set-payload value="3rd Route" doc:name="Set Payload" doc:id="eb3f62df-6108-4b7e-b9c9-0475ea689d59" />
+			</route>
+		</round-robin>
+		<logger level="INFO" doc:name="Logger" doc:id="03a2eb5a-f823-4942-b309-ab4818369b69" message="End Logger"/>
+	</flow>
+	<flow name="scatter-gather" doc:id="6a0f0cc0-0639-49fc-bfaf-ab67c323c288" >
+		<http:listener doc:name="Listener" doc:id="bed947c6-aad8-4115-a6e8-f45c9e87a7e2" config-ref="HTTP_Listener_config" path="/scatter"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="c3a20515-20aa-4dc5-937a-dd7a224016e1" >
+			<route >
+				<file:read doc:name="Read" doc:id="8daec798-4084-453a-83e3-4d12501043d1" path="C:\Users\343629\Desktop\MuleSoft\test\1.csv"/>
+				<logger level="INFO" doc:name="Logger" doc:id="11dac3d5-02a0-42bf-bdc0-f28cc5245b64" />
+			</route>
+			<route >
+				<file:read doc:name="Read" doc:id="0549e7d0-538b-4a4e-956a-696c10775376" path="C:\Users\343629\Desktop\MuleSoft\test\2.csv"/>
+				<logger level="INFO" doc:name="Logger" doc:id="04e5816e-54f0-4b89-b49d-682040f930db" />
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="783966d0-6f3a-4c92-b956-207d10bdf732">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+flatten(payload..payload)]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+	</flow>
+</mule>
