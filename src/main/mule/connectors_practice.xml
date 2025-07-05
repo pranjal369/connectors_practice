@@ -46,7 +46,7 @@ output application/json
 	</flow>
 	<flow name="Batchjob" doc:id="4a434b2d-bfd2-4228-b14d-9159eb20de14" >
 		<http:listener doc:name="Listener" doc:id="d91b3026-38be-4896-b347-1e7c8cb50a42" config-ref="HTTP_Listener_config" path="/batch"/>
-		<set-payload value='#[[10,20,"a",40,"pranjal",50]]' doc:name="[10,20,30]" doc:id="a85310de-61d8-4b26-ad3d-d4f6afdde67e" />
+		<set-payload value='#[[10,20,"a",40,"pranjal",50]]' doc:name='[10,20,"a",40,"pranjal",50]' doc:id="a85310de-61d8-4b26-ad3d-d4f6afdde67e" />
 		<batch:job jobName="git_learnBatch_Job" doc:id="f42a5d26-dafc-47e5-aaae-02bb89e7209b" >
 			<batch:process-records>
 				<batch:step name="Batch_Step" doc:id="09b5f325-aa96-47d8-bca9-19992441deb3" acceptExpression="#[payload is Number]">
@@ -63,11 +63,19 @@ output application/json
 				</batch:step>
 			</batch:process-records>
 			<batch:on-complete >
+				<ee:transform doc:name="Transform Message" doc:id="a037e001-b610-4238-a886-5114a21e2691" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
 				<logger level="INFO" doc:name="Logger" doc:id="33dbacb9-bb3a-4d72-ab87-52448cf5db80" />
 			</batch:on-complete>
 		</batch:job>
 	</flow>
-	<flow name="git_learnFlow" doc:id="780c9e6a-b6f8-4288-b8ac-221b2712b260" >
+	<flow name="choiceRouter" doc:id="780c9e6a-b6f8-4288-b8ac-221b2712b260" >
 		<http:listener doc:name="Listener" doc:id="9a1848cb-49c8-4f73-8c69-cb169cb52659" config-ref="HTTP_Listener_config" path="/choice"/>
 		<choice doc:name="Choice" doc:id="76cbc302-db1f-4033-8f54-9e4520a098df" >
 			<when expression='#[attributes.queryParams.color=="Red"]'>
@@ -98,7 +106,7 @@ output application/json
 				<set-payload value="3rd Route" doc:name="Set Payload" doc:id="eb3f62df-6108-4b7e-b9c9-0475ea689d59" />
 			</route>
 		</round-robin>
-		<logger level="INFO" doc:name="Logger" doc:id="03a2eb5a-f823-4942-b309-ab4818369b69" message="End Logger"/>
+		<logger level="INFO" doc:name=" here" doc:id="03a2eb5a-f823-4942-b309-ab4818369b69" message="End Logger"/>
 	</flow>
 	<flow name="scatter-gather" doc:id="6a0f0cc0-0639-49fc-bfaf-ab67c323c288" >
 		<http:listener doc:name="Listener" doc:id="bed947c6-aad8-4115-a6e8-f45c9e87a7e2" config-ref="HTTP_Listener_config" path="/scatter"/>
